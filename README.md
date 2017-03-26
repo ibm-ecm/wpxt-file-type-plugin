@@ -78,7 +78,7 @@ Here is a video describing the migration from Workplace XT to ICN issue more in 
 
 ## Issues
 
-If you find any issue in the plug-in, please open an Issue in this GitHub repository, we'll be happy to take a look at it as soon as we can. Please remember this is an Open Source project without official support so we can't commit to any deadline.
+If you find any issue in the plug-in, please open an Issue in this GitHub repository, we'll be happy to take a look at it as soon as we can. Please remember that this is an Open Source project without official support so we can't commit to any deadline.
 Feel free to submit a Pull Request yourself if you already fixed it, we'll be happy to accept it to share it with everyone else.
 
 ## Enhancements
@@ -109,7 +109,7 @@ Basically, the Workplace XT associations are kept as xml annotation on folders. 
 </object>
 ```
 
-You can see here I have two associations, one restricted to one file type and the other without any restriction. I guess at this point you already figure out the issue, File Type Categories are stored in the xml as IDs...
+You can see here I have two associations, one restricted to one file type and the other without any restriction. I guess at this point you already figured out the issue, File Type Categories are stored in the xml as IDs...
 
 Although ICN has been implemented to be compatible with Workplace XT as much as it could, and does understand the xml annotations from Workplace XT, it has no way to resolve the IDs to actual MIME Types since it does not even know where the Workplace XT preferences file is. Thats means these IDs do not make any sense to ICN and it will never use the restricted Entry Templates.
 
@@ -128,21 +128,21 @@ This plug-in is released under the [Apache 2](http://www.apache.org/licenses/LIC
 
 ### How to configure
 
-This plug-in is using Gradle as build automation system. Import, download, fork the project. Then you have two options to provide the two jars that are not part of the open-source release:
+This plug-in is using Gradle as build automation system. Import, download, fork the project. Then you have two options to provide the three jars that are not part of the open-source release:
 
-#### Copy them in the libs folder
+#### Copy them in the lib folder
 
-Copy *j2ee.jar*, *jace.jar* and *navigator.jar* (renamed from *navigatorAPI.jar*) in the ***lib*** folder of the project and you are done. These jars can be found on any machine with ICN/FileNet installed under **/opt/IBM/ECMClient/lib** for *navigatorAPI.jar*, **/opt/IBM/FileNet/ContentEngine/lib** for Jace.jar and **/opt/IBM/WebSphere/AppServer/lib** for *j2ee.jar* (if you're using WebSphere).
+Create a ***lib*** folder in the project's folder, copy *j2ee.jar*, *jace.jar* and *navigator.jar* (renamed from *navigatorAPI.jar*) in it and you are done. These jars can be found on any machine with ICN/FileNet installed under **/opt/IBM/ECMClient/lib** for *navigatorAPI.jar*, **/opt/IBM/FileNet/ContentEngine/lib** for Jace.jar and **/opt/IBM/WebSphere/AppServer/lib** for *j2ee.jar* (if you're using WebSphere).
 
 #### Use your own private Maven repository if you have one
-If you own your own Maven repository where the three needed jars are deployed, just comment the two following lines in build.gradle:
+If you own your own Maven repository where the three needed jars are deployed, just comment the tree following lines in build.gradle:
 ```
 compile name: 'jace'
 compile name: 'j2ee'
 compile name: 'navigator'
 ```
 
-And uncomment the three following lines. Edit them if you are using different groupId, artifactId or version.
+And uncomment the three following lines. Edit them if you are using different groupIds, artifactIds or versions.
 
 ```
 // compile 'com.ibm.filenet:jace:5.2.1'
@@ -158,8 +158,8 @@ gradle assemble
 ```
 in the project and you will get the final jar in ***build/dist*** folder.
 
-### How to deploy the classes in ICN
-If you're working on the plug-in, it is easier to use the classes directly in ICN instead of the building deploying the jar every time. Since the Gradle conventions dictate to split sources and resources, the default approach doesn't work. To work around that, we've changed the ***classes*** task of Gradle to compile and gather everything in a single folder under ***build/all***. So all you have to do is configure ICN as follow:
+### How to directly use classes in ICN
+If you're working on the plug-in, it is easier to use the classes directly in ICN instead of building and deploying the jar every time. Since the Gradle conventions dictate to split sources and resources, the default approach doesn't work. To work around that, we've changed the ***classes*** task of Gradle to compile and gather everything in a single folder under ***build/all***. So all you have to do is configure ICN as follow:
 * Class file path: *$project_path*/build/all
 * Class name: com.ibm.icn.extensions.wpxtfiletype.WpxtFileTypePlugin
 
