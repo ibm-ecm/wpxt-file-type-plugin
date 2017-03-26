@@ -1,0 +1,9 @@
+/.gradle/
+/build/
+/bin/
+/lib/**
+.brackets.json
+.jshintrc
+/.settings/
+.classpath
+.project

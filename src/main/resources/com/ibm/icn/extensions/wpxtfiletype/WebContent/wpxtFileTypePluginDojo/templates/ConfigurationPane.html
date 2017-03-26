@@ -1,0 +1,45 @@
+<div>
+	<table class="propertyTable">
+		<tr>
+            <td class="propertyRowLabel"><label for="${id}_repositoryIdParam">${messages.objectStore}</label>
+            <div id="${id}_repositoryIdHoverHelp" data-dojo-attach-point="repositoryIdHoverHelp"
+                    data-dojo-type="wpxtFileTypePluginDojo/HoverHelp"
+                    data-dojo-props="topicID: 'repositoryId'"></div>
+            </td>
+			<td class="propertyRowValue">
+                <input id="${id}_repositoryIdParam"
+                       data-dojo-type="dijit.form.Select"
+                       data-dojo-attach-point="repositoryIdField"
+                       data-dojo-attach-event="onChange: _onParamChange"
+                       style="height: 20px;" />
+			</td>
+		</tr>
+	</table>
+    <table class="propertyTable">
+		<tr>
+            <td class="propertyRowLabel"><label for="${id}_prefPathParam">${messages.preferenceDocument}</label>
+            <div id="${id}_prefPathHoverHelp" data-dojo-attach-point="prefPathHoverHelp"
+                    data-dojo-type="wpxtFileTypePluginDojo/HoverHelp"
+                    data-dojo-props="topicID: 'prefPath'"></div>
+            </td>
+			<td class="propertyRowValue">
+				<div id="${id}_prefPathParam"
+					data-dojo-attach-point="prefPathField"
+					data-dojo-attach-event="onBlur: _onParamChange"
+					data-dojo-type="ecm.widget.ValidationTextBox"
+					data-dojo-props="required:'true',trim:'true',value:'/Preferences/Site Preferences for WorkplaceXT'">
+				</div>
+			</td>
+		</tr>
+	</table>
+    <table class="propertyTable">
+		<tr>
+			<td class="propertyRowLabel"><label id="mappingLabelFor" data-dojo-attach-point="mappingParam">${messages.mapping}</label></td>
+			<td class="propertyRowValue">
+				<div id="mappingParam">
+                    <div>${messages.mappingNotice}</div>
+				</div>
+			</td>
+		</tr>
+	</table>
+</div>
