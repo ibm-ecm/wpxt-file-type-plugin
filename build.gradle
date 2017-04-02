@@ -3,7 +3,7 @@ import org.apache.tools.ant.filters.ReplaceTokens
 apply plugin: 'java'
 apply plugin: 'eclipse'
 
-version = '1.0.0'
+version = '1.0.1-snapshot'
 group = 'com.ibm.icn'
 
 project.ext {
@@ -68,12 +68,14 @@ jar {
 }
 
 // Distribute a jar without version suffix
-assemble << {
-    copy {
-		from "$buildDir/libs"
-		into "$buildDir/dist"
-		rename { String jarName ->
-			jarName.replace("-$version", '')
+assemble {
+	doLast {
+	    copy {
+			from "$buildDir/libs"
+			into "$buildDir/dist"
+			rename { String jarName ->
+				jarName.replace("-$version", '')
+			}
 		}
 	}
 }
