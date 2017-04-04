@@ -36,4 +36,8 @@ public class Constants {
 	 * Parameter key used to send the mapping
 	 */
     public static final String PARAM_MAP_KEY = "map";
+    /**
+	 * Parameter key used to send the current config
+	 */
+    public static final String PARAM_CONFIG = "config";
 }

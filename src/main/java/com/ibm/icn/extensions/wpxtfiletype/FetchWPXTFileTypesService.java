@@ -94,18 +94,26 @@ public class FetchWPXTFileTypesService  extends PluginService {
 	    JSONResponse jsonResults = new JSONResponse();
 	    
 	    JSONObject conf;
+	    String currentConf = request.getParameter(Constants.PARAM_CONFIG);
+	    String mapS = (String) request.getParameter(Constants.PARAM_MAP_KEY);
+	    
+	    
+	    boolean map = true;
+	    if (mapS != null && !"".equals(mapS)) {
+	        map = Boolean.parseBoolean(mapS);
+	    }
+	    
 	    String configuration = callbacks.loadConfiguration();
-	    if (configuration != null && !configuration.isEmpty()) {
+	    // If we are in the configuration panel (!map) asking for mapping, use current unsaved values
+	    if (!map && currentConf != null && !currentConf.isEmpty()) {
+	    	conf = JSONObject.parse(currentConf);
+	    } else if (configuration != null && !configuration.isEmpty()) {
 	    	 conf = JSONObject.parse(configuration);
 	    } else {
 	    	 conf = new JSONObject();
 	    }
 	    JSONObject mapping = (JSONObject) conf.get(Constants.CONFIG_MAPPING_KEY);
-	    String mapS = (String) request.getParameter(Constants.PARAM_MAP_KEY);
-	    boolean map = true;
-	    if (mapS != null && !"".equals(mapS)) {
-	        map = Boolean.parseBoolean(mapS);
-	    }
+	    
 	    
         if (map) {
         	if (mapping != null) {

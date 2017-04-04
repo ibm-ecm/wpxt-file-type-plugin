@@ -6,7 +6,6 @@ define({
 	root: ({
 
         adminDesktopWarning: 'The mapping can not be configured from the admin desktop because it does not have access to the Workplace XT object Store. Please use the user desktop, logged as administrator to configure this plugin.',
-        mappingSaveTwice: "Mapping (save twice if not loaded (first add))",
         wpxtCategory: 'Workplace XT File Type Category',
         icnFileType: 'ICN File Type filter',
         objectStore: 'Workplace XT Repository',

@@ -6,6 +6,7 @@ define([
     "dojo/_base/lang",
     "dojo/_base/array",
     "dojo/on",
+    "dojo/Deferred",
     "dijit/_TemplatedMixin",
     "ecm/model/Request",
     "ecm/model/Message",
@@ -15,6 +16,7 @@ define([
     "dijit/form/Select",
     "ecm/widget/admin/PluginConfigurationPane",
     "wpxtFileTypePluginDojo/Constants",
+    "wpxtFileTypePluginDojo/admin/RepoManager",
     "dojo/i18n!./nls/messages",
     "dojo/text!./templates/ConfigurationPane.html"
 ], function (
@@ -22,6 +24,7 @@ define([
     lang,
     array,
     on,
+    Deferred,
     _TemplatedMixin,
     Request,
     Message,
@@ -31,6 +34,7 @@ define([
     Select,
     PluginConfigurationPane,
     Constants,
+    RepoManager,
     mes,
     template
 ) {
@@ -47,17 +51,29 @@ define([
              */
             _allSelects: null,
             /**
-             * <code>true</code> if the mapping has been loaded, <code>false</code>
-             * @type {boolean} 
+             * The current repo selected if any, which possibiliy isn't connect (.connected)
+             * @type {ecm.model.Repository} 
              * @private
              */
-            _mappingLoaded: false,
+            _currentRepo: null,
             /**
              * A map of WorkplaceXT ID (as key) associated to their value (object {id: string, name: string})
              * @type {Object.<string, {id: string, name: string}>} 
              * @private
              */
             _filetypes: null,
+            /**
+             * RepoManager to access repository from both Admin and Normal desktop
+             * @type {wpxtFileTypePluginDojo.admin.RepoManager} 
+             * @private
+             */
+            _repoManager: null,
+            /**
+             * Save the fact than the current repository is not connected and mapping can't be loaded
+             * @type {boolean} 
+             * @private
+             */
+            _valid: true,
             
             /**
              * Init select on Post Create
@@ -65,8 +81,8 @@ define([
              */
             postCreate: function () {
                 this.inherited(arguments);
+                this._repoManager = new RepoManager();
                 this._filetypes = {};
-                this._initRepo();
             },
 
             /**
@@ -74,31 +90,27 @@ define([
              * @override
              */
             load: function (/* callback */) {
-                // The auto-load does not work from the admin desktop
-                if (ecm.model.desktop.id == 'admin') {
-                    ecm.model.desktop.addMessage(new Message({
-                        number: 0,
-                        level: 3,
-                        text: this.messages.adminDesktopWarning,
-                        backgroundRequest: false
-                    }));
-                }
-                
-                if (this.configurationString) {
-                    var jsonConfig = JSON.parse(this.configurationString);
-                    
-                    var repo = jsonConfig[Constants.CONFIG_REPOSITORY_ID_KEY];
-                    this.setSelect(this.repositoryIdField, repo);
-                    this.prefPathField.set('value', jsonConfig[Constants.CONF_PREFERENCES_PATH]);
-                    
-                    if (this.isObjectStoreValid(repo) && ecm.model.desktop.id != 'admin') {
-                        this._loadMapping(jsonConfig);
+                this._initRepo().then(lang.hitch(this, function () {
+                    var currentConf;
+                    if (this.configurationString) {
+                        // Init from configuration
+                        currentConf = JSON.parse(this.configurationString);
+                        var repo = currentConf[Constants.CONFIG_REPOSITORY_ID_KEY];
+                        this.setSelect(this.repositoryIdField, repo);
+                        this.prefPathField.set('value', currentConf[Constants.CONF_PREFERENCES_PATH]);
                     } else {
-                        this.mappingParam.innerHTML = this.messages.mappingSaveTwice;
+                        // Persist default values to configuration
+                        currentConf = this._persist();
                     }
-                } else {
-                    this.mappingParam.innerHTML = this.messages.mappingSaveTwice;
-                }
+                    // Find the repository object from the idea and make sure it's connected (if admin desktop)
+                    // so we can load the mapping from it
+                    this._findRepo().then(lang.hitch(this, function () {
+                        this._loadMapping(currentConf);
+                    }), lang.hitch(this, function () {
+                        // Not logged in, do nothing _valid is already to false
+                    }));
+                    
+                }));
             },
             
             /**
@@ -106,19 +118,61 @@ define([
              * @private
              */
             _initRepo: function () {
-                var data = [], first = true;
-                array.forEach(ecm.model.desktop.repositories, function (repo) {
-                    if (repo.type == "p8") {
+                var data = [], first = true, res = new Deferred();
+                this._repoManager.getRepositories().then(lang.hitch(this, function (repositories) {
+                    this._repositories = repositories;
+                    array.forEach(repositories, function (repo) {
                         if (first) {
                             data.push({ value: repo.id, label: repo.name, selected: true});
                             first = false;
                         } else {
                             data.push({ value: repo.id, label: repo.name, selected: false});
                         }
+                    });
+                    this.repositoryIdField.addOption(data);
+                    res.resolve();
+                }));
+                return res.promise;
+            },
+            _findRepo: function () {
+                var res = new Deferred();
+                var repoId = this.repositoryIdField.get('value');
+                this._repoManager.getRepositories().then(lang.hitch(this, function (repositories) {
+                    this._currentRepo = null;
+                    array.some(repositories, (lang.hitch(this, function (e) {
+                        if (e.id == repoId) {
+                            this._currentRepo = e;
+                            return true;
+                        } else {
+                            return false;
+                        }
+                    })));
+                    
+                    if (this._currentRepo) {
+                        this._valid = true;
+                        if (this._currentRepo.connected) {
+                            res.resolve();
+                        } else {
+                            this._repoManager.connectRepo(this._currentRepo).then(lang.hitch(this, function () {
+                                res.resolve();
+                            }), lang.hitch(this, function () {
+                                this._valid = false;
+                                res.reject();
+                            }));
+                        }
+                    } else {
+                        this._valid = false;
+                        res.reject();
                     }
-                });
-                this.repositoryIdField.addOption(data);
-
+                }));
+                return res.promise;
+            },
+            _onRepoChange: function () {
+                this._findRepo().then(lang.hitch(this, function () {
+                    this._configChangedImplyingReload();
+                }), lang.hitch(this, function () {
+                    // Not logged in, do nothing _valid is already to false
+                }));
             },
             /**
              * Load the mapping from the configuration
@@ -126,73 +180,64 @@ define([
              */
             _loadMapping: function (jsonConfig) {
                 
-                if (!this._mappingLoaded) {
-                    this.logDebug("_loadMapping", 'Loading WPXT File Types...');
-                
-                    this._allSelects = {};
-                    this._filetypes = {};
-                    var serviceParams = {};
-                    serviceParams[Constants.PARAM_MAP_KEY] = false;
+                this.logDebug("_loadMapping", 'Loading WPXT File Types...');
 
-                    Request.invokePluginService(Constants.PLUGIN_ID, Constants.SERVICE_FETCH_XPXT_FT, {
-                        requestParams : serviceParams,
-                        requestCompleteCallback: lang.hitch(this, function (response) {
+                this._allSelects = {};
+                this._filetypes = {};
+                var serviceParams = {};
+                serviceParams[Constants.PARAM_MAP_KEY] = false;
 
-                            this.logDebug("_loadMapping", "retrieving WPXT FT OK");
-                            if (response.filetypes) {
+                // To speed up the process and save people of saving twice, also give the current config
+                // as param so it doesn;t have to be saved in the config
+                serviceParams[Constants.PARAM_CONFIG] = JSON.stringify(jsonConfig);
 
-                                this._mappingLoaded = true;
-                                this.onSaveNeeded(true);
+                Request.invokePluginService(Constants.PLUGIN_ID, Constants.SERVICE_FETCH_XPXT_FT, {
+                    requestParams : serviceParams,
+                    requestCompleteCallback: lang.hitch(this, function (response) {
 
-                                var currentMapping = jsonConfig && jsonConfig[Constants.CONFIG_MAPPING_KEY] ? jsonConfig[Constants.CONFIG_MAPPING_KEY] : {};
-                                
-                                // Build ICN file type datastore
-                                var data = [{label: '', value: 'none'}];
-                                array.forEach(ecm.model.desktop.fileTypes, function (el) {
-                                    var fileType = el._attributes;
-                                    data.push({label: fileType.name, value: fileType.name});
-                                });
+                        this.logDebug("_loadMapping", "retrieving WPXT FT OK");
+                        if (response.filetypes) {
 
-                                var div = dom.byId("mappingParam");
+                            var currentMapping = jsonConfig && jsonConfig[Constants.CONFIG_MAPPING_KEY] ? jsonConfig[Constants.CONFIG_MAPPING_KEY] : {};
 
-                                var table = domConstruct.place("<table>", div);
-                                domConstruct.place("<tr><td>" + this.messages.wpxtCategory + "</td><td>" + this.messages.icnFileType + "</td></tr>", table);
+                            // Build ICN file type datastore
+                            var data = [{label: '', value: 'none'}];
+                            array.forEach(ecm.model.desktop.fileTypes, function (el) {
+                                var fileType = el._attributes;
+                                data.push({label: fileType.name, value: fileType.name});
+                            });
 
-                                // Add one row per WPXT filetype
-                                array.forEach(response.filetypes, lang.hitch(this, function (fileType) {
-                                    this._filetypes[fileType.id] = fileType;
+                            var div = dom.byId("mappingParam");
 
-                                    var tr =  domConstruct.place("<tr>", table);
+                            domConstruct.empty(div);
 
-                                    domConstruct.place("<td class='mappingLabel'>" + fileType.name + "</td>", tr);
+                            var table = domConstruct.place("<table>", div);
+                            domConstruct.place("<tr><td>" + this.messages.wpxtCategory + "</td><td>" + this.messages.icnFileType + "</td></tr>", table);
 
-                                    var newData = JSON.parse(JSON.stringify(data));
+                            // Add one row per WPXT filetype
+                            array.forEach(response.filetypes, lang.hitch(this, function (fileType) {
+                                this._filetypes[fileType.id] = fileType;
 
-                                    var select = this.initSelect(fileType, newData, currentMapping);
+                                var tr =  domConstruct.place("<tr>", table);
 
-                                    var td = domConstruct.place("<td>", tr);
-                                    domConstruct.place(select.domNode, td);
-                                }));
-                                
-                                // Save this default mapping
-                                var configJson = {};
-                                configJson[Constants.CONFIG_REPOSITORY_ID_KEY] = this.repositoryIdField.get('value');
-                                configJson[Constants.CONF_PREFERENCES_PATH] = this.prefPathField.get('value');
-                                configJson[Constants.CONFIG_MAPPING_KEY] = this.saveMapping();
-                                this.configurationString = JSON.stringify(configJson);
-                                this.onSaveNeeded(true);
-                                this._loadMapping(configJson);
-                                
-                                this.saveMapping();
-                                this._persist();
+                                domConstruct.place("<td class='mappingLabel'>" + fileType.name + "</td>", tr);
 
-                            } else {
-                                this.logError("_loadMapping", "Error when retrieving File Type in the FileTypeFixPlugin");
-                            }
+                                var newData = JSON.parse(JSON.stringify(data));
 
-                        })
-                    });
-                }
+                                var select = this.initSelect(fileType, newData, currentMapping);
+
+                                var td = domConstruct.place("<td>", tr);
+                                domConstruct.place(select.domNode, td);
+                            }));
+
+                            this._persist();
+
+                        } else {
+                            this.logError("_loadMapping", "Error when retrieving File Type in the FileTypeFixPlugin");
+                        }
+
+                    })
+                });
                 
             },
             /**
@@ -215,9 +260,13 @@ define([
                 select.startup();
                 
                 this._allSelects[fileType.id] = select;
-                on(select, "change", lang.hitch(this, this._onParamChange));
+                on(select, "change", lang.hitch(this, this._onMappingChange));
                    
                 return select;
+            },
+            _onMappingChange: function () {
+                this._persist();
+                this.onSaveNeeded(true);
             },
             /**
              * Try to map (select in the datastore) automatically by finding an ICN File Type with 
@@ -247,7 +296,7 @@ define([
              * This is called when any field is changing
              * @private
              */
-            _onParamChange : function () {
+            _configChangedImplyingReload: function () {
                 var configJson = this._persist();
                 this.onSaveNeeded(true);
                 this._loadMapping(configJson);
@@ -275,10 +324,7 @@ define([
              * @override
              */
             validate: function () {
-                if (!this.isObjectStoreValid(this.repositoryIdField.get('value'))) {
-                    return false;
-                }
-                return true;
+                return this._valid;
             },
             /**
              * Select the given value in the given {dijit.form.Select}, or first if not found
@@ -297,24 +343,6 @@ define([
                 });
                 if (!found && select.options && select.options.length > 0) {
                     select.options[0].select = true;
-                }
-            },
-            /**
-             * Check if the Object Store exists in ICN
-             */
-            isObjectStoreValid: function (value) {
-                return array.some(ecm.model.admin.appCfg._attributes.repositories, function (el) {
-                    return el == value;
-                });
-            },
-            // Override
-            save: function (/* onComplete */) {
-                // Reload mapping on save if not loaded yet
-                // This is happening at install time when this could not
-                // be loaded becausee no OS was selected
-                if (this.configurationString && this.configurationString.length > 0) {
-                    var jsonConfig = JSON.parse(this.configurationString);
-                    this._loadMapping(jsonConfig);
                 }
             }
         });

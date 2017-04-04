@@ -9,10 +9,10 @@ To be more accurate, this plug-in allows the use of Workplace XT Entry Templates
 * IBM Content Navigator 2.0.3.0 or later
 
 ### Installing the plug-in
-This plug-in is a little bit different from other plug-ins, because it needs to have access to the repositories to fetch the Workplace XT preferences document. That means you have to install and configure the plug-in from another desktop than the *admin* desktop. So you should connect as an admin to any other desktop and access the admin feature using the icon of the *Administration View* feature on the left of the screen.
+This plug-in is a little bit different from other plug-ins, because it needs to have access to the repository to fetch the Workplace XT preferences document. Since repositories are not already connected with the current user when using the *admin* desktop, you will have to connect manually if you're using this desktop. I would recommend connecting as an administrator to any other desktop and access the *admin* feature using the icon of the *Administration View* feature on the left of the screen, that will save you the logon for each repository.
 
 1. Copy the [plug-in's jar](https://github.com/ibm-ecm/wpxt-file-type-plugin/releases) in a location accessible by your ICN instance, or by all instances if you're using a clustered environment, or replicate it to all instances in the same location.
-2. Access the admin feature in a normal desktop (do not use the admin desktop as mentioned above) > _Plug-Ins_ and click _New Plug-In_.
+2. Access the *admin* desktop or the *Administration View* feature in a normal desktop > _Plug-Ins_ and click _New Plug-In_.
 3. Enter the full path of the plug-in's jar and click Load.
 4. Set up the initial configuration to fit best your needs. See the [configuration](https://github.com/ibm-ecm/wpxt-file-type-plugin#configuration) section for more details on all options.
 
@@ -20,13 +20,13 @@ This plug-in is a little bit different from other plug-ins, because it needs to 
 This plug-in does not have any action or feature. It is loaded by all clients (browsers) when connecting to ICN so no extra configuration outside of the plug-in's configuration panel is required.
  
 ### Configuration
-As mentioned above, make sure you are not under the admin desktop when configuring this plug-in, but instead in another desktop accessing the admin feature by clicking on the icon on the left of the screen.
+As mentioned above, if you're using the *admin* desktop, the plug-in will ask your credentials to connect to the selected repository. Then when switching from one repository to another, it will ask you again for the new repository if you haven't switched to it yet.
 
 | Option        | Description | 
 | - |:-:|
 | Workplace XT Repository | Select the FileNet P8 repository (i.e. object store) hosting the Workplace XT preferences file. The plug-in needs to be able to access this file to read the File Type Categories. |
 | Workplace XT Preferences document | That's the absolute path of the Workplace XT preferences file in the object store named above. Usually this path is by default */Preferences/Site Preferences for WorkplaceXT*, but it can be changed when you configure the bootstrap preferences in Workplace XT. |
-| Mapping | This section is loaded automatically as soon as the plug-in is able to read your Workplace XT preferences file, and will offer you to map each Workplace XT File Type Category with an ICN File Type filter. It will also try to map them automatically if names match. You can look at the picture below to see what the mapping section looks like. The first time you install this plug-in you might have to save twice the configuration, or even sometime to save and close or refresh ICN to get this section displayed, because the plug-in might require to be fully installed to be able to access the repository. |
+| Mapping | This section is loaded automatically as soon as the plug-in is able to read your Workplace XT preferences file, and will offer you to map each Workplace XT File Type Category with an ICN File Type filter. It will also try to map them automatically if names match. You can look at the picture below to see what the mapping section looks like. |
 
 ![mapping-section](https://raw.githubusercontent.com/ibm-ecm/wpxt-file-type-plugin/master/readme/mapping-section.jpg "Mapping section")
 
@@ -75,6 +75,12 @@ If you are still reading at this point, you should probably go read the [**Who s
 Here is a video describing the migration from Workplace XT to ICN issue more in depth, then how to resolve it by installing and using the plug-in.
 
 [![basic-behavior](http://img.youtube.com/vi/tiMth1KxONc/0.jpg)](https://youtu.be/tiMth1KxONc)
+
+## Known limitation
+
+### Unique repository
+
+Only one repository is supported at this time. You can have several but the mapping can be configured only from one, and it will be apply only to this one (actually it will be applied to all but the Workplace XT File Categories Ids are specific to this one so it won't have no effect on others).
 
 ## Issues
 
@@ -128,13 +134,13 @@ This plug-in is released under the [Apache 2](http://www.apache.org/licenses/LIC
 
 ### How to configure
 
-This plug-in is using Gradle as build automation system. Import, download, fork the project. Then you have two options to provide the three jars that are not part of the open-source release:
+This plug-in is using *Gradle* as build automation system. Download or fork the project, whatever suits you, then you have two options to provide the three jars that are not part of the open-source release:
 
-#### Copy them in the lib folder
+#### 1. Copy them in the lib folder
 
 Create a ***lib*** folder in the project's folder, copy *j2ee.jar*, *jace.jar* and *navigator.jar* (renamed from *navigatorAPI.jar*) in it and you are done. These jars can be found on any machine with ICN/FileNet installed under **/opt/IBM/ECMClient/lib** for *navigatorAPI.jar*, **/opt/IBM/FileNet/ContentEngine/lib** for Jace.jar and **/opt/IBM/WebSphere/AppServer/lib** for *j2ee.jar* (if you're using WebSphere).
 
-#### Use your own private Maven repository if you have one
+#### 2. Use your own private Maven repository if you have one
 If you own your own Maven repository where the three needed jars are deployed, just comment the tree following lines in build.gradle:
 ```
 compile name: 'jace'
@@ -163,8 +169,25 @@ If you're working on the plug-in, it is easier to use the classes directly in IC
 * Class file path: *$project_path*/build/all
 * Class name: com.ibm.icn.extensions.wpxtfiletype.WpxtFileTypePlugin
 
-Then run ```gradle classes``` every time you want to push changes to your ICN instance. Of course you will still have to click the Load button if you changed the Java files, and refresh the page if you change the JavaScript files as you would normally do.
+Then run ```gradle classes``` every time you want to push changes to your ICN instance. Of course, you will still have to click the *Load* button if you changed the Java files, and refresh the page if you change the JavaScript files as you would normally do.
 
 ### Contribute
 
 If you wish to contribute to this plug-in, the simplest way is to create Pull Requests and we will integrate them whenever it makes sense. If you want to become a long term contributor and have contributor access to the plug-in, you will have to contact us, and fill a Contributor License Agreement.
+
+
+## History
+
+### 1.0.1 (04/04/2017)
+
+ Enhancements:
+ 
+  * Plug-in can now be configured from the *admin* desktop (login asked at selection time) : #1
+  * Real-time loading mapping (no need to save twice anymore to persist in the configuration first): #3
+  * Preparing future versions of *Gradle* by replacing the deprecated left shift (**<<**): #2
+  
+Issues:
+
+### 1.0.0 (03/26/2017)
+
+Initial release

@@ -4,7 +4,6 @@
 define({
 
     adminDesktopWarning: "La configuration ne peut être faite depuis le bureau adiministrateur car il n'a pas accès à l'object store de Workplact XT. Merci d'utiliser un bureau utilisateur en tant qu'adiminitrateur et d'utiliser la vue Adminitration sur la gauche de l'écran pour configurer ce plugin",
-    mappingSaveTwice: "Correspondance (enregistrer deux fois si non chargé (installation))",
     wpxtCategory: 'Catégories de fichier Workplace XT',
     icnFileType: 'Type de fichier ICN',
     objectStore: 'Référentiel Workplace XT',

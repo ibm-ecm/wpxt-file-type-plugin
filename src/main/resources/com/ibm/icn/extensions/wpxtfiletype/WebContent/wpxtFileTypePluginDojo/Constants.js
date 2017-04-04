@@ -40,7 +40,12 @@ define([
          * @type {string}
          * The param key to ask for mapping or not
          */
-        PARAM_MAP_KEY: "map"
+        PARAM_MAP_KEY: "map",
+        /** 
+         * @type {string}
+         * The param key for the current config
+         */
+        PARAM_CONFIG: "config"
         
 
     });
